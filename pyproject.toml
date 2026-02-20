@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=45"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pelican-wavedrom"
+version = "0.1.0"
+description = "Render WaveDrom timing diagrams in Pelican blog posts"
+requires-python = ">=3.9"
+dependencies = ["pelican>=4.5", "Markdown>=3.4"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pelican.plugins.wavedrom_generator*"]
