@@ -6,6 +6,14 @@ from pelican.plugins.wavedrom_generator import _settings
 
 logger = logging.getLogger(__name__)
 
+# Matches outer fences of 4+ backticks or tildes (used to show code examples).
+# Content inside these is passed through unchanged so nested ```wavedrom
+# blocks used as display examples are not rendered.
+OUTER_FENCE_RE = re.compile(
+    r'^(?P<fence>`{4,}|~{4,})[^\n]*\n.*?^(?P=fence)[ \t]*$',
+    re.MULTILINE | re.DOTALL
+)
+
 WAVEDROM_FENCE_RE = re.compile(
     r'^(?P<fence>`{3,}|~{3,})[ \t]*wavedrom[ \t]*\n'
     r'(?P<json>.*?)'
@@ -13,10 +21,22 @@ WAVEDROM_FENCE_RE = re.compile(
     re.MULTILINE | re.DOTALL
 )
 
+def _apply_outside_fences(text, func):
+    """Apply func only to segments outside 4+ backtick/tilde outer fences."""
+    result = []
+    last = 0
+    for m in OUTER_FENCE_RE.finditer(text):
+        result.append(func(text[last:m.start()]))
+        result.append(m.group())
+        last = m.end()
+    result.append(func(text[last:]))
+    return ''.join(result)
+
 class WaveDromPreprocessor(Preprocessor):
     def run(self, lines):
         text = '\n'.join(lines)
-        return WAVEDROM_FENCE_RE.sub(self._replace, text).split('\n')
+        text = _apply_outside_fences(text, lambda t: WAVEDROM_FENCE_RE.sub(self._replace, t))
+        return text.split('\n')
 
     def _replace(self, match):
         return _render_or_cached(match.group('json').strip())
